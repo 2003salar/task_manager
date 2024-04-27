@@ -1,39 +1,32 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('./connectDB');
+const pool = require('../connectDB');
 const bcrypt = require('bcrypt');
+const passport = require('passport');
+const session = require('express-session');
+const PgSimple = require('connect-pg-simple')(session);
+const initializePassport = require('../passportConfig');
+
+router.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: new PgSimple({ pool: pool, tableName: 'session'}),
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24
+    }
+}));
+
+initializePassport(passport);
 router.use(express.json());
+router.use(express.urlencoded({extended: true}));
+router.use(passport.initialize());
+router.use(passport.session());
+
 
 // Login using username and password
-router.post('/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            res.status(400).json({success: false, message: 'Invalid username or password'});
-            return;
-        }
-        const results = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-
-        let user = null; 
-        if (results.rows.length > 0) {
-            user = results.rows[0]; 
-        }
-        if (user) {
-            if (user.password !== password) {
-                res.status(400).json({ message: "Invalid password" });
-                return;
-            }
-        } else {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-        res.status(200).json({message: "signed in"});
-
-    } catch (error) {
-        console.error('Database error:', error);
-        return res.status(500).json({ success: false, message: 'Server error' });
-    }
-    
+router.post('/login', passport.authenticate('local'), (req, res) => {
+    res.status(200).json({success: true, message: 'You are signed in'});
 });
 
 // Register
