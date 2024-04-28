@@ -85,7 +85,7 @@ router.delete('/', isUserAuthenticated, async (req, res) => {
     try {
         const {task_id} = req.query;
         if (!task_id) {
-            res.status(400).json({success: false, message: 'Invalid Project'});
+            res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }   
         const projectResults = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);

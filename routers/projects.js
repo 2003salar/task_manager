@@ -40,6 +40,27 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
+// Delete a project
+router.delete('/', isUserAuthenticated, async (req, res) => {
+    try {
+        const {project_id} = req.query;
+        if (!project_id) {
+            res.status(400).json({success: false, message: 'Invalid project'});
+            return;
+        }   
+        const projectResults = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2', [project_id, req.user.id]);
+        if (projectResults.rows.length === 0) {
+            res.status(404).json({success: false, message: 'Project not found or access denied'});
+            return;
+        }
+        await pool.query('DELETE FROM projects WHERE id = $1', [project_id]);
+        return res.status(201).json({success: true, message: 'Deleted successfully'}); 
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
+
 // Router to: /projects/tasks/
 router.use('/tasks', projectTaskRouter)
 
