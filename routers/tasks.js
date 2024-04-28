@@ -1,87 +1,125 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../connectDB');
-const bcrypt = require('bcrypt');
-const passport = require('passport');
-const session = require('express-session');
-const PgSimple = require('connect-pg-simple')(session);
-const initializePassport = require('../passportConfig');
 const isUserAuthenticated = require('./isUserAuthenticated');
-const projectsRouter = require('./projects');
 
-router.use(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: new PgSimple({ pool: pool, tableName: 'session'}),
-    cookie: {
-        maxAge: 1000 * 60 * 60 * 24
+
+// Get all tasks in a project  
+router.get('/', isUserAuthenticated, async (req, res) => {
+    try {
+        const { project_id } = req.query;
+        if (!project_id) {
+            res.status(400).json({success: false, message: 'Invalid project'});
+            return;
+        }
+        /*
+        VALIDATE INDIVIDUALLY FOR separation of concerns 
+        */
+        const projectResult = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2;', [project_id, req.user.id]);
+        if (projectResult.rows.length === 0) {
+            res.status(403).json({ success: false, message: 'Access denied: You are not the owner of this project' });
+            return;
+        }
+        const results = await pool.query('SELECT * FROM tasks WHERE project_id = $1 AND users_id = $2', [project_id, req.user.id]); 
+        res.status(200).json({success: true, data: results.rows});       
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
     }
-}));
-
-initializePassport(passport);
-router.use(express.json());
-router.use(express.urlencoded({extended: true}));
-router.use(passport.initialize());
-router.use(passport.session());
-
-
-// Login using username and password
-router.post('/login', passport.authenticate('local'), (req, res) => {
-    res.status(200).json({success: true, message: 'You are signed in'});
 });
 
-// Register
-router.post('/register', async (req, res) => {
+// Create a task in a project
+router.post('/', isUserAuthenticated, async (req, res) => {
     try {
-        const {first_name, last_name, username, password, password2, email} = req.body;
-        // Validating inputs
-        if (!first_name || !last_name || !username || !password || !password2 || !email) {
-            res.status(400).json({success: false, message: 'Invalid inputs!'});
+        const {title, description, due_date, priority, project_id} = req.body;
+        // Validatin of data coming from body
+        if (!title || !due_date || !priority || !project_id) {
+            res.status(400).json({success: false, message: 'Missing required inputs'});
             return;
         } 
-        // Checking whether or not passwords match
-        if (password !== password2) {
-            res.status(400).json({success: false, message: 'Passwords do not match'});
+        if (![1, 2, 3].includes(priority)) {
+            res.status(400).json({success: false, message: 'Invalid priority'});
             return;
         }
-        // Validating password length
-        if (password.length < 6) {
-            res.status(400).json({success: false, message: 'Password must be more than 6 characters'});
+        // Validating date
+        const dueDate = new Date(due_date);
+        if (isNaN(dueDate.getTime()) || dueDate <= new Date()) {
+            res.status(400).json({ success: false, message: 'Invalid due date. Due date must be in the future.' });
             return;
         }
-        // Checking whether or not there is already a username in DB
-        const results = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-        const user = results.rows[0];
-        if (user) {
-            res.status(400).json({success: false, message: `Error: ${username} is already taken`});
+        // If the project does not exist
+        const projectResults = await pool.query('SELECT * FROM projects WHERE id = $1', [project_id]);
+        if (projectResults.rows.length === 0) {
+            res.status(400).json({success: false, message: 'Project does not exist'});
             return;
         }
-        // Generating hash for the password
-        const saltRounds = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        // Add the user to DB
-        const newUser = await pool.query(`INSERT INTO users 
-                        (first_name, last_name, username, password, email)
-                        VALUES ($1, $2, $3, $4, $5) RETURNING username, email`, [first_name, last_name, username, hashedPassword, email]); 
-        return res.status(201).json({success: true, data: newUser.rows});
+        // if task already exists in that project
+        const existingProject = projectResults.rows[0];
+        if (existingProject.user_id !== Number(req.user.id)) {
+            res.status(403).json({ success: false, message: 'Access not authorized' });
+            return;
+        }
+        const taskResults = await pool.query('SELECT * FROM tasks WHERE title = $1 AND project_id = $2', [title, project_id]);
+        if (taskResults.rows.length > 0) {
+            res.status(400).json({success: false, message: 'Task already exists'});
+            return;
+        }
+        // Query and insert into DB
+        let newTask;
+        if (description) {
+            newTask = await pool.query(`INSERT INTO tasks (title, description, due_date, priority, project_id, users_id)
+                                        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, due_date, priority`, [title, description, dueDate, priority, project_id, req.user.id]);
+        }else {
+            newTask = await pool.query(`INSERT INTO tasks (title, due_date, priority, project_id, users_id)
+                                        VALUES ($1, $2, $3, $4, $5) RETURNING id, title, due_date, priority`, [title, dueDate, priority, project_id, req.user.id]);
+        }
+        res.status(201).json({success: true, data: newTask.rows});
     } catch (error) {
-        console.log('Sever error: ', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
     }
 });
 
-// Log the user out if authenticated
-router.get('/logout', isUserAuthenticated, (req, res) => {
-    req.logout((err) => {
-        if (err) {
+// Update a project
+
+// Delete a task in a project
+router.delete('/', isUserAuthenticated, async (req, res) => {
+    try {
+        const {task_id} = req.query;
+        if (!task_id) {
+            res.status(400).json({success: false, message: 'Invalid task'});
+            return;
+        }   
+        const projectResults = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);
+        if (projectResults.rows.length === 0) {
+            res.status(404).json({success: false, message: 'Project not found or access denied'});
+            return;
         }
-        res.status(200).json({success: true, message: 'Logged out'});
-    });
+        await pool.query('DELETE FROM tasks WHERE id = $1', [task_id]);
+        return res.status(201).json({success: true, message: 'Deleted successfully'}); 
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
 });
 
-router.use('/projects', projectsRouter);
-
-
+// Get a specific task
+router.get('/task', isUserAuthenticated, async (req, res) => {
+    try {
+        const { task_id } = req.query;
+        if (!task_id) {
+            res.status(400).json({success: false, message: 'Invalid task'});
+            return;
+        }
+        const results = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);
+        if (results.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Task not found or access denied' });
+            return;
+        }
+        res.status(200).json({success: true, data: results.rows[0]});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
 module.exports = router;

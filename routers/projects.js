@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
-const projectTaskRouter = require('./projectTasks')
+
 
 // Get all projects for the request user
 router.get('/', isUserAuthenticated, async (req, res) => {
@@ -40,6 +40,8 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
+// Update a project
+
 // Delete a project
 router.delete('/', isUserAuthenticated, async (req, res) => {
     try {
@@ -61,7 +63,26 @@ router.delete('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
-// Router to: /projects/tasks/
-router.use('/tasks', projectTaskRouter)
+// Get a specific project
+router.get('/project', isUserAuthenticated, async (req, res) => {
+    try {
+        const { project_id } = req.query;
+        if (!project_id) {
+            res.status(400).json({success: false, message: 'Invalid project'});
+            return;
+        }
+        const results = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2', [project_id, req.user.id]);
+        if (results.rows.length === 0) {
+            res.status(404).json({ success: false, message: 'Project not found or access denied' });
+            return;
+        }
+        res.status(200).json({success: true, data: results.rows[0]});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
+
+
 
 module.exports = router;
