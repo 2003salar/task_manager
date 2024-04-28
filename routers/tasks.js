@@ -6,6 +6,8 @@ const passport = require('passport');
 const session = require('express-session');
 const PgSimple = require('connect-pg-simple')(session);
 const initializePassport = require('../passportConfig');
+const isUserAuthenticated = require('./isUserAuthenticated');
+const projectsRouter = require('./projects');
 
 router.use(session({
     secret: process.env.SESSION_SECRET,
@@ -69,6 +71,17 @@ router.post('/register', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
+
+// Log the user out if authenticated
+router.get('/logout', isUserAuthenticated, (req, res) => {
+    req.logout((err) => {
+        if (err) {
+        }
+        res.status(200).json({success: true, message: 'Logged out'});
+    });
+});
+
+router.use('/projects', projectsRouter);
 
 
 module.exports = router;
