@@ -40,7 +40,7 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
-
-router.use('/task', projectTaskRouter)
+// Router to: /projects/tasks/
+router.use('/tasks', projectTaskRouter)
 
 module.exports = router;

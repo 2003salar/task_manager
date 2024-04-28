@@ -3,7 +3,32 @@ const router = express.Router();
 const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
 
-// Create a task for a projects
+
+// Get all tasks in a project  
+router.get('/', isUserAuthenticated, async (req, res) => {
+    try {
+        const { project_id } = req.query;
+        if (!project_id) {
+            res.status(400).json({success: false, message: 'Invalid project'});
+            return;
+        }
+        /*
+        VALIDATE INDIVIDUALLY FOR separation of concerns 
+        */
+        const projectResult = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2;', [project_id, req.user.id]);
+        if (projectResult.rows.length === 0) {
+            res.status(403).json({ success: false, message: 'Access denied: You are not the owner of this project' });
+            return;
+        }
+        const results = await pool.query('SELECT * FROM tasks WHERE project_id = $1 AND users_id = $2', [project_id, req.user.id]); 
+        res.status(200).json({success: true, data: results.rows});       
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
+
+// Create a task in a project
 router.post('/', isUserAuthenticated, async (req, res) => {
     try {
         const {title, description, due_date, priority, project_id} = req.body;
@@ -44,9 +69,10 @@ router.post('/', isUserAuthenticated, async (req, res) => {
         if (description) {
             newTask = await pool.query(`INSERT INTO tasks (title, description, due_date, priority, project_id, users_id)
                                         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, due_date, priority`, [title, description, dueDate, priority, project_id, req.user.id]);
-        }
-        newTask = await pool.query(`INSERT INTO tasks (title, due_date, priority, project_id, users_id)
+        }else {
+            newTask = await pool.query(`INSERT INTO tasks (title, due_date, priority, project_id, users_id)
                                         VALUES ($1, $2, $3, $4, $5) RETURNING id, title, due_date, priority`, [title, dueDate, priority, project_id, req.user.id]);
+        }
         res.status(201).json({success: true, data: newTask.rows});
     } catch (error) {
         console.log(error);
@@ -54,4 +80,24 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
+// Delete a task in a project
+router.delete('/', isUserAuthenticated, async (req, res) => {
+    try {
+        const {task_id} = req.query;
+        if (!task_id) {
+            res.status(400).json({success: false, message: 'Invalid Project'});
+            return;
+        }   
+        const projectResults = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);
+        if (projectResults.rows.length === 0) {
+            res.status(404).json({success: false, message: 'Project not found or access denied'});
+            return;
+        }
+        await pool.query('DELETE FROM tasks WHERE id = $1', [task_id]);
+        return res.status(201).json({success: true, message: 'Deleted successfully'}); 
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
 module.exports = router;
