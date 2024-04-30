@@ -106,7 +106,6 @@ const Tasks = sequelize.define('Task', {
         allowNull: false,
         validate: {
             isIn: [[1, 2, 3]],
-            msg: 'Invalid Priority',
         },
     },
     created_at: {

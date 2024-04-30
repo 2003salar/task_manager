@@ -74,14 +74,14 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
             res.status(400).json({success: false, message: 'Project not found or access  denied'});
             return;
         }
-        const updateProject = await Projects.findOne({
+        const updatedProject = await Projects.findOne({
             where: {
                 id: id,
                 user_id: req.user.id,
             },
         });
 
-        res.status(200).json({success: true, data: updateProject});
+        res.status(200).json({success: true, data: updatedProject});
         
     } catch (error) {
         console.log(error);

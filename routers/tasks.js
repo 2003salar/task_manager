@@ -81,6 +81,54 @@ router.post('/', isUserAuthenticated, async (req, res) => {
 });
 
 // Update a task
+router.patch('/:id', isUserAuthenticated, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({success: false, message: 'Invalid task'});
+            return;
+        }
+        const task = await Tasks.findOne({
+            where: {
+                id: id,
+                users_id: req.user.id,
+            }
+        });
+        if (!task) {
+            res.status(404).json({success: false, message: 'Task not found'});
+            return;
+        }
+        const updatedParts = {...req.body};
+        delete updatedParts.created_at;
+        delete updatedParts.updated_at;
+        delete updatedParts.users_id;
+        delete updatedParts.project_id;
+
+        const [taskCount] = await Tasks.update(req.body, {
+            where: {
+                id: id,
+                users_id: req.user.id,
+            },
+        });
+
+        if (taskCount === 0) {
+            res.status(404).json({success: false, message: 'Access denied or task was not found'});
+            return;
+        }
+
+        const updatedTask = await Tasks.findOne({
+            where: {
+                id: id,
+                users_id: req.user.id,
+            },
+        });
+
+        res.status(200).json({success: true, data: updatedTask});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
 
 // Delete a task in a project
 router.delete('/', isUserAuthenticated, async (req, res) => {
