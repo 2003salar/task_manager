@@ -65,10 +65,10 @@ router.post('/', isUserAuthenticated, async (req, res) => {
         let newTask;
         if (description) {
             newTask = await pool.query(`INSERT INTO tasks (title, description, due_date, priority, project_id, users_id)
-                                        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, title, due_date, priority`, [title, description, dueDate, priority, project_id, req.user.id]);
+                                        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, [title, description, dueDate, priority, project_id, req.user.id]);
         }else {
             newTask = await pool.query(`INSERT INTO tasks (title, due_date, priority, project_id, users_id)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING id, title, due_date, priority`, [title, dueDate, priority, project_id, req.user.id]);
+                                        VALUES ($1, $2, $3, $4, $5) RETURNING *`, [title, dueDate, priority, project_id, req.user.id]);
         }
         res.status(201).json({success: true, data: newTask.rows});
     } catch (error) {
