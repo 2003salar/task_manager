@@ -48,16 +48,18 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
             res.status(400).json({success: false, message: 'Invalid project id'});
             return;
         }
-        const project = await Projects.findByPk(id);
+        const project = await Projects.findOne({
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
+
         if(!project) {
             res.status(400).json({success: false, message: 'Project not found'});
             return;
         } 
-        if (project.user_id !== Number(req.user.id)) {
-            res.status(403).json({success: false, message: 'Access denied'});
-            return;
-        }
-
+        
         const updatedParts = {...req.body};
         delete updatedParts.created_at;
         delete updatedParts.updated_at;
