@@ -8,7 +8,7 @@ const {Tasks} = require('../models');
 router.get('/project/:id', isUserAuthenticated, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) {
+        if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         } 
@@ -81,7 +81,7 @@ router.post('/', isUserAuthenticated, async (req, res) => {
 router.patch('/:id', isUserAuthenticated, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) {
+        if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }
@@ -131,7 +131,7 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
 router.delete('/:id', isUserAuthenticated, async (req, res) => {
     try {
         const {id} = req.params;
-        if (!id) {
+        if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }   
@@ -152,7 +152,7 @@ router.delete('/:id', isUserAuthenticated, async (req, res) => {
 router.get('/:id', isUserAuthenticated, async (req, res) => {
     try {
         const { id } = req.params;
-        if (!id) {
+        if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }
