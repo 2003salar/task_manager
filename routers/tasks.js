@@ -5,23 +5,20 @@ const isUserAuthenticated = require('./isUserAuthenticated');
 const {Tasks} = require('../models');
 
 // Get all tasks in a project  
-router.get('/', isUserAuthenticated, async (req, res) => {
+router.get('/project/:id', isUserAuthenticated, async (req, res) => {
     try {
-        const { project_id } = req.query;
-        if (!project_id) {
-            res.status(400).json({success: false, message: 'Invalid project'});
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({success: false, message: 'Invalid task'});
             return;
-        }
-        /*
-        VALIDATE INDIVIDUALLY FOR separation of concerns 
-        */
-        const projectResult = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2;', [project_id, req.user.id]);
-        if (projectResult.rows.length === 0) {
-            res.status(403).json({ success: false, message: 'Access denied: You are not the owner of this project' });
-            return;
-        }
-        const results = await pool.query('SELECT * FROM tasks WHERE project_id = $1 AND users_id = $2', [project_id, req.user.id]); 
-        res.status(200).json({success: true, data: results.rows});       
+        } 
+        const tasks = await Tasks.findAll({
+            where: {
+                project_id: id,
+                users_id: req.user.id,
+            },
+        });
+        res.status(200).json({success: true, data: tasks});       
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});
@@ -131,19 +128,19 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
 });
 
 // Delete a task in a project
-router.delete('/', isUserAuthenticated, async (req, res) => {
+router.delete('/:id', isUserAuthenticated, async (req, res) => {
     try {
-        const {task_id} = req.query;
-        if (!task_id) {
+        const {id} = req.params;
+        if (!id) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }   
-        const projectResults = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);
-        if (projectResults.rows.length === 0) {
-            res.status(404).json({success: false, message: 'Project not found or access denied'});
-            return;
-        }
-        await pool.query('DELETE FROM tasks WHERE id = $1', [task_id]);
+        const task = await Tasks.destroy({
+            where: {
+                id: id,
+                users_id: req.user.id,
+            },
+        });
         return res.status(201).json({success: true, message: 'Deleted successfully'}); 
     } catch (error) {
         console.log(error);
@@ -152,19 +149,24 @@ router.delete('/', isUserAuthenticated, async (req, res) => {
 });
 
 // Get a specific task
-router.get('/task', isUserAuthenticated, async (req, res) => {
+router.get('/:id', isUserAuthenticated, async (req, res) => {
     try {
-        const { task_id } = req.query;
-        if (!task_id) {
+        const { id } = req.params;
+        if (!id) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
         }
-        const results = await pool.query('SELECT * FROM tasks WHERE id = $1 AND users_id = $2', [task_id, req.user.id]);
-        if (results.rows.length === 0) {
+        const task = await Tasks.findOne({
+            where: {
+                id: id,
+                users_id: req.user.id,
+            },
+        });
+        if (!task) {
             res.status(404).json({ success: false, message: 'Task not found or access denied' });
             return;
         }
-        res.status(200).json({success: true, data: results.rows[0]});
+        res.status(200).json({success: true, data: task});
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});

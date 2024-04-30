@@ -73,7 +73,7 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
         });
 
         if (projectCount === 0) {
-            res.status(400).json({success: false, message: 'Project not found or access  denied'});
+            res.status(400).json({success: false, message: 'Project not found or access denied'});
             return;
         }
         const updatedProject = await Projects.findOne({
