@@ -7,8 +7,12 @@ const {Projects} = require('../models');
 // Get all projects for the request user
 router.get('/', isUserAuthenticated, async (req, res) => {
     try { 
-        const results = await pool.query('SELECT * FROM projects WHERE user_id = $1', [req.user.id]);
-        res.status(200).json({success: true, data: results.rows});   
+        const projects = await Projects.findAll({
+            where: {
+                user_id: req.user.id,
+            },
+        });
+        res.status(200).json({success: true, data: projects});   
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});
@@ -92,19 +96,19 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
 });
 
 // Delete a project
-router.delete('/', isUserAuthenticated, async (req, res) => {
+router.delete('/:id', isUserAuthenticated, async (req, res) => {
     try {
-        const {project_id} = req.query;
-        if (!project_id) {
+        const {id} = req.params;
+        if (!id) {
             res.status(400).json({success: false, message: 'Invalid project'});
             return;
         }   
-        const projectResults = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2', [project_id, req.user.id]);
-        if (projectResults.rows.length === 0) {
-            res.status(404).json({success: false, message: 'Project not found or access denied'});
-            return;
-        }
-        await pool.query('DELETE FROM projects WHERE id = $1', [project_id]);
+        const project = await Projects.destroy({
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
         return res.status(201).json({success: true, message: 'Deleted successfully'}); 
     } catch (error) {
         console.log(error);
@@ -113,19 +117,24 @@ router.delete('/', isUserAuthenticated, async (req, res) => {
 });
 
 // Get a specific project
-router.get('/project', isUserAuthenticated, async (req, res) => {
+router.get('/:id', isUserAuthenticated, async (req, res) => {
     try {
-        const { project_id } = req.query;
-        if (!project_id) {
+        const { id } = req.params;
+        if (!id) {
             res.status(400).json({success: false, message: 'Invalid project'});
             return;
         }
-        const results = await pool.query('SELECT * FROM projects WHERE id = $1 AND user_id = $2', [project_id, req.user.id]);
-        if (results.rows.length === 0) {
-            res.status(404).json({ success: false, message: 'Project not found or access denied' });
+        const project = await Projects.findOne({
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
+        if (!project) {
+            res.status(404).json({ success: false, message: 'Project not found' });
             return;
         }
-        res.status(200).json({success: true, data: results.rows[0]});
+        res.status(200).json({success: true, data: project});
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});
