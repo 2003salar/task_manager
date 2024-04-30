@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
-
+const {Tasks} = require('../models');
 
 // Get all tasks in a project  
 router.get('/', isUserAuthenticated, async (req, res) => {
@@ -80,7 +80,7 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     }
 });
 
-// Update a project
+// Update a task
 
 // Delete a task in a project
 router.delete('/', isUserAuthenticated, async (req, res) => {
@@ -122,4 +122,6 @@ router.get('/task', isUserAuthenticated, async (req, res) => {
         res.status(500).json({success: false, message: 'Server error'});
     }
 });
+
+
 module.exports = router;

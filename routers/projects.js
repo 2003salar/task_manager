@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
-
+const {Projects} = require('../models');
 
 // Get all projects for the request user
 router.get('/', isUserAuthenticated, async (req, res) => {
@@ -41,6 +41,53 @@ router.post('/', isUserAuthenticated, async (req, res) => {
 });
 
 // Update a project
+router.patch('/:id', isUserAuthenticated, async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({success: false, message: 'Invalid project id'});
+            return;
+        }
+        const project = await Projects.findByPk(id);
+        if(!project) {
+            res.status(400).json({success: false, message: 'Project not found'});
+            return;
+        } 
+        if (project.user_id !== Number(req.user.id)) {
+            res.status(403).json({success: false, message: 'Access denied'});
+            return;
+        }
+
+        const updatedParts = {...req.body};
+        delete updatedParts.created_at;
+        delete updatedParts.updated_at;
+        delete updatedParts.user_id;
+
+        const [projectCount] = await Projects.update(updatedParts, {
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
+
+        if (projectCount === 0) {
+            res.status(400).json({success: false, message: 'Project not found or access  denied'});
+            return;
+        }
+        const updateProject = await Projects.findOne({
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
+
+        res.status(200).json({success: true, data: updateProject});
+        
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({success: false, message: 'Server error'});
+    }
+});
 
 // Delete a project
 router.delete('/', isUserAuthenticated, async (req, res) => {
@@ -82,7 +129,6 @@ router.get('/project', isUserAuthenticated, async (req, res) => {
         res.status(500).json({success: false, message: 'Server error'});
     }
 });
-
 
 
 module.exports = router;
