@@ -4,24 +4,24 @@ Task Manager API is a RESTful API for managing tasks and projects. It provides e
 
 ## Table of Contents
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-  - [User Authentication](#user-authentication)
-  - [Projects](#projects)
-  - [Tasks](#tasks)
-- [Dependencies](#dependencies)
+- [✨ Features](#features)
+- [🔧 Installation](#installation)
+- [💻 Usage](#usage)
+- [📡 API Endpoints](#api-endpoints)
+  - [🔑 User Authentication](#user-authentication)
+  - [📂 Projects](#projects)
+  - [🗂️ Tasks](#tasks)
+- [📦 Dependencies](#dependencies)
 
-## Features
+## ✨ Features
 
-- User authentication and session management
-- Create, update, and delete projects
-- Create, update, and delete tasks within projects
-- Retrieve all projects and tasks for a user
-- Secure access control for authenticated users
+- 🔐 User authentication and session management
+- 📂 Create, update, and delete projects
+- 🗂️ Create, update, and delete tasks within projects
+- 👤 Retrieve all projects and tasks for a user
+- 🔒 Secure access control for authenticated users
 
-## Installation
+## 🔧 Installation
 
 1. Clone the repository:
 
@@ -57,15 +57,15 @@ Task Manager API is a RESTful API for managing tasks and projects. It provides e
 
     The server will start running on the specified port (default is 3000).
 
-## Usage
+## 💻 Usage
 
 The API is accessible via HTTP requests. Each endpoint requires an appropriate HTTP method (`GET`, `POST`, `PATCH`, `DELETE`) and request parameters.
 
 Use a tool like Postman or curl to interact with the API.
 
-## API Endpoints
+## 📡 API Endpoints
 
-### User Authentication
+### 🔑 User Authentication
 
 - **Login**: `POST /login`
     - Authenticate a user using username and password.
@@ -81,7 +81,7 @@ Use a tool like Postman or curl to interact with the API.
     - Log out the authenticated user.
     - **Response**: `{ "success": true, "message": "Logged out" }`
 
-### Projects
+### 📂 Projects
 
 - **Get all projects**: `GET /projects`
     - Get all projects for the authenticated user.
@@ -105,7 +105,7 @@ Use a tool like Postman or curl to interact with the API.
     - Get details of a specific project.
     - **Response**: `{ "success": true, "data": { "id": 1, "name": "Project 1", ... } }`
 
-### Tasks
+### 🗂️ Tasks
 
 - **Get all tasks in a project**: `GET /tasks/project/:id`
     - Get all tasks in a specific project for the authenticated user.
@@ -129,14 +129,14 @@ Use a tool like Postman or curl to interact with the API.
     - Get details of a specific task.
     - **Response**: `{ "success": true, "data": { "id": 1, "title": "Task 1", ... } }`
 
-## Dependencies
+## 📦 Dependencies
 
-- Node.js
-- Express
-- PostgreSQL
-- Sequelize
-- Validator
-- Passport
-- bcrypt
-- express-session
-- connect-pg-simple
+- 🛠️ Node.js
+- ⚡ Express
+- 🗄️ PostgreSQL
+- 💻 Sequelize
+- ✅ Validator
+- 🔑 Passport
+- 🔒 bcrypt
+- 🗂️ express-session
+- 📦 connect-pg-simple
