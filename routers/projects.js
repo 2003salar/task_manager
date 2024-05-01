@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
 const {Projects} = require('../models');
 
@@ -29,15 +28,24 @@ router.post('/', isUserAuthenticated, async (req, res) => {
             return;
         }
         // Check if project already exists
-        const existingProject = await pool.query('SELECT * FROM projects WHERE name = $1 and user_id = $2', [name, req.user.id]);
-        if (existingProject.rows.length > 0) {
+        const existingProject = await Projects.findOne({
+            where: {
+                name,
+                user_id: req.user.id,
+            },
+        });
+        if (existingProject) {
             res.status(400).json({success: false, message: 'Project already exists'});
             return;
         }
         // Else add the new project into DB
-        const newProject = await pool.query(`INSERT INTO projects (name, description, user_id)
-                        VALUES ($1, $2, $3) RETURNING id, name, created_at`, [name, description, req.user.id]);
-        res.status(201).json({success: true, data: newProject.rows});
+        const newProject = await Projects.create({
+            name,
+            description,
+            user_id: req.user.id,
+        });
+        res.status(201).json({success: true, data: newProject});
+
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});
