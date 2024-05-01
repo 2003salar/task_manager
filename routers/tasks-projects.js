@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const validator = require('validator');
 const pool = require('../connectDB');
+const {Users} = require('../models');
 const bcrypt = require('bcrypt');
 const passport = require('passport');
 const session = require('express-session');
@@ -51,9 +53,16 @@ router.post('/register', async (req, res) => {
             res.status(400).json({success: false, message: 'Password must be more than 6 characters'});
             return;
         }
+        if (!validator.isEmail(email)) {
+            res.status(400).json({success: false, message: 'Invalid email'});
+            return;
+        } 
         // Checking whether or not there is already a username in DB
-        const results = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-        const user = results.rows[0];
+        const user = await Users.findOne({
+            where: {
+                username,
+            },
+        })
         if (user) {
             res.status(400).json({success: false, message: `Error: ${username} is already taken`});
             return;
@@ -62,11 +71,15 @@ router.post('/register', async (req, res) => {
         const saltRounds = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        // Add the user to DB
-        const newUser = await pool.query(`INSERT INTO users 
-                        (first_name, last_name, username, password, email)
-                        VALUES ($1, $2, $3, $4, $5) RETURNING username, email`, [first_name, last_name, username, hashedPassword, email]); 
-        return res.status(201).json({success: true, data: newUser.rows});
+        // Add the user to DB 
+        const newUser = await Users.create({
+            first_name,
+            last_name,
+            username,
+            password: hashedPassword,
+            email,
+        })
+        return res.status(201).json({success: true, data: newUser});
     } catch (error) {
         console.log('Sever error: ', error);
         res.status(500).json({ success: false, message: 'Server error' });

@@ -1,13 +1,16 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const pool = require('./connectDB');
+const {Users} = require('./models');
 const bcrypt = require('bcrypt');
 
 const authenticateUser = async (username, password, done) => {
     try {
-        const results = await pool.query('SELECT * FROM users WHERE username = $1', [username])
-        if (results.rows.length > 0) {
-            const user = results.rows[0];
+        const user = await Users.findOne({
+            where: {
+                username,
+            },
+        });
+        if (user) {
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
                 return done(null, false, {message: 'Incorrect password'});
@@ -33,9 +36,9 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
     try {
-        const results = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-        if (results.rows.length > 0) {
-            return done(null, results.rows[0]);
+        const user = Users.findByPk(id);
+        if (user) {
+            return done(null, user);
         } 
         return done(null, null);  
     } catch (error) {
