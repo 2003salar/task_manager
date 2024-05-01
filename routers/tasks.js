@@ -134,7 +134,18 @@ router.delete('/:id', isUserAuthenticated, async (req, res) => {
         if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid task'});
             return;
-        }   
+        }
+        const taskExists = await Tasks.findOne({
+            where: {
+                id: id,
+                users_id: req.user.id,
+            },
+        });
+        if (!taskExists) {
+            res.status(404).json({success: false, message: 'Task not found'});
+            return;
+        }
+    
         const task = await Tasks.destroy({
             where: {
                 id: id,
