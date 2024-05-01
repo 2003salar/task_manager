@@ -60,7 +60,7 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
         });
 
         if(!project) {
-            res.status(400).json({success: false, message: 'Project not found'});
+            res.status(404).json({success: false, message: 'Project not found'});
             return;
         } 
         
@@ -86,9 +86,7 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
                 user_id: req.user.id,
             },
         });
-
-        res.status(200).json({success: true, data: updatedProject});
-        
+        res.status(200).json({success: true, data: updatedProject});      
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});
@@ -101,6 +99,16 @@ router.delete('/:id', isUserAuthenticated, async (req, res) => {
         const {id} = req.params;
         if (!id || isNaN(id)) {
             res.status(400).json({success: false, message: 'Invalid project'});
+            return;
+        }
+        const projectExists = await Projects.findOne({
+            where: {
+                id: id,
+                user_id: req.user.id,
+            },
+        });
+        if (!projectExists) {
+            res.status(404).json({success: false, message: 'Project not found!'});
             return;
         }   
         const project = await Projects.destroy({

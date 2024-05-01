@@ -109,7 +109,7 @@ router.patch('/:id', isUserAuthenticated, async (req, res) => {
         });
 
         if (taskCount === 0) {
-            res.status(404).json({success: false, message: 'Access denied or task was not found'});
+            res.status(404).json({success: false, message: 'Access denied'});
             return;
         }
 
@@ -163,7 +163,7 @@ router.get('/:id', isUserAuthenticated, async (req, res) => {
             },
         });
         if (!task) {
-            res.status(404).json({ success: false, message: 'Task not found or access denied' });
+            res.status(404).json({ success: false, message: 'Task not found' });
             return;
         }
         res.status(200).json({success: true, data: task});
