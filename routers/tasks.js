@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../connectDB');
 const isUserAuthenticated = require('./isUserAuthenticated');
-const {Tasks} = require('../models');
+const validattor = require('validator');
+const { Tasks, Projects } = require('../models');
 
 // Get all tasks in a project  
 router.get('/project/:id', isUserAuthenticated, async (req, res) => {
@@ -30,11 +30,11 @@ router.post('/', isUserAuthenticated, async (req, res) => {
     try {
         const {title, description, due_date, priority, project_id} = req.body;
         // Validatin of data coming from body
-        if (!title || !due_date || !priority || !project_id) {
+        if (!title || !due_date || !priority || priority === undefined || !project_id) {
             res.status(400).json({success: false, message: 'Missing required inputs'});
             return;
         } 
-        if (![1, 2, 3].includes(priority)) {
+        if (!validattor.isInt(String(priority), { min: 1, max: 3})) {
             res.status(400).json({success: false, message: 'Invalid priority'});
             return;
         }
@@ -45,32 +45,49 @@ router.post('/', isUserAuthenticated, async (req, res) => {
             return;
         }
         // If the project does not exist
-        const projectResults = await pool.query('SELECT * FROM projects WHERE id = $1', [project_id]);
-        if (projectResults.rows.length === 0) {
-            res.status(400).json({success: false, message: 'Project does not exist'});
+        const projectResults = await Projects.findOne({
+            where: {
+                id: project_id,
+                user_id: req.user.id,
+            },
+        });
+        if (!projectResults) {
+            res.status(404).json({success: false, message: 'Project was not found'});
             return;
         }
         // if task already exists in that project
-        const existingProject = projectResults.rows[0];
-        if (existingProject.user_id !== Number(req.user.id)) {
-            res.status(403).json({ success: false, message: 'Access not authorized' });
-            return;
-        }
-        const taskResults = await pool.query('SELECT * FROM tasks WHERE title = $1 AND project_id = $2', [title, project_id]);
-        if (taskResults.rows.length > 0) {
+        const taskResults = await Tasks.findOne({
+           where: {
+                title,
+                project_id,
+                users_id: req.user.id,
+            }, 
+        }); 
+        if (taskResults) {
             res.status(400).json({success: false, message: 'Task already exists'});
             return;
         }
         // Query and insert into DB
         let newTask;
         if (description) {
-            newTask = await pool.query(`INSERT INTO tasks (title, description, due_date, priority, project_id, users_id)
-                                        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`, [title, description, dueDate, priority, project_id, req.user.id]);
-        }else {
-            newTask = await pool.query(`INSERT INTO tasks (title, due_date, priority, project_id, users_id)
-                                        VALUES ($1, $2, $3, $4, $5) RETURNING *`, [title, dueDate, priority, project_id, req.user.id]);
+            newTask = await Tasks.create({
+                title,
+                description,
+                due_date,
+                priority,
+                project_id,
+                users_id: req.user.id,
+            });
+        } else {
+            newTask = await Tasks.create({
+                title,
+                due_date,
+                priority,
+                project_id,
+                users_id: req.user.id,
+            });
         }
-        res.status(201).json({success: true, data: newTask.rows});
+        res.status(201).json({success: true, data: newTask});
     } catch (error) {
         console.log(error);
         res.status(500).json({success: false, message: 'Server error'});

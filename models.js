@@ -83,6 +83,7 @@ const Tasks = sequelize.define('Task', {
         type: DataTypes.BIGINT,
         allowNull: false,
         primaryKey: true,
+        autoIncrement: true,
     },
     title: {
         type: DataTypes.STRING,
