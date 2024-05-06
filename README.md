@@ -105,6 +105,10 @@ Use a tool like Postman or curl to interact with the API.
     - Get details of a specific project.
     - **Response**: `{ "success": true, "data": { "id": 1, "name": "Project 1", ... } }`
 
+- **Search a project**: `GET /projects/project/search?query=`
+    - Retrieve information about projects that match the provided search query.
+    - **Response**: `{ "success": true, "data": { "id": 1, "name": "Project 1", ... } }`
+
 ### 🗂️ Tasks
 
 - **Get all tasks in a project**: `GET /tasks/project/:id`
@@ -128,6 +132,11 @@ Use a tool like Postman or curl to interact with the API.
 - **Get a specific task**: `GET /tasks/:id`
     - Get details of a specific task.
     - **Response**: `{ "success": true, "data": { "id": 1, "title": "Task 1", ... } }`
+
+- **Search a task**: `GET /tasks/task/search?query=`
+    - Retrieve information about tasks that match the provided search query.
+    - **Response**: `{ "success": true, "data": { "id": 1, "title": "Task 1", ... } }`
+
 
 ## 📦 Dependencies
 
