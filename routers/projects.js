@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const isUserAuthenticated = require('./isUserAuthenticated');
-const {Projects} = require('../models');
+const { Projects } = require('../models');
+const { Op } = require('sequelize');
 
 // Get all projects for the request user
 router.get('/', isUserAuthenticated, async (req, res) => {
@@ -157,5 +158,27 @@ router.get('/:id', isUserAuthenticated, async (req, res) => {
     }
 });
 
-
+// Search for a project
+router.get('/project/search', isUserAuthenticated, async (req, res) => {
+    try {
+       const { project } = req.query;
+       if (!project) {
+           res.status(400).json({success: false, message: 'Missing search query'});
+           return;
+       }
+       const projects = await Projects.findAll({
+           where: {
+               name: {
+                   [Op.like]: '%' + project + '%',    
+               },
+               user_id: req.user.id,
+           },
+       });
+       res.status(200).json({success: true, data: projects});
+    } catch (error) {
+       console.log(error);
+       res.status(500).json({success: false, message: 'Server error'});
+    }
+   });
+   
 module.exports = router;
