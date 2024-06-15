@@ -146,6 +146,18 @@ Projects.belongsTo(Users, { foreignKey: 'user_id', as: 'user'});
 Tasks.belongsTo(Projects, {foreignKey: 'project_id', as: 'project'}),
 Tasks.belongsTo(Users, {foreignKey: 'users_id', as: 'user'});
 
+const asyncDataBase = async () => {
+    try {
+        await sequelize.authenticate();
+        await sequelize.sync();
+        console.log('Tables created');
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+asyncDataBase();
+
 module.exports = {
     sequelize,
     Users,
